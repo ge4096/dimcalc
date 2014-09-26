@@ -3,7 +3,6 @@
 import data
 
 # Todo:
-# -(3m)
 # 19V(3m)
 # proper error handling
 # Add >
@@ -197,12 +196,24 @@ def opsplit(x):
 	if '-' in argar:
 		if argar[0] == '-':
 			argar = ['-' + argar[1]] + argar[2:]
-		print(argar)
 		for n in range(1, len(argar) - 1):
 			if argar[n] == '-':
-				if argar[n - 1] in '+-*/(^>':
+				if argar[n - 1] in '+-*/^(>':
 					argar = argar[:n] + ['-' + argar[n + 1]] + argar[n + 2:]
-					print('Shit')
+	if '-(' in argar:
+		for n in range(0, len(argar) - 1):
+			if argar[n] == '-(':
+				argar = argar[:n] + ['(', '-1', '*', '('] + argar[n + 1:]
+				print(argar)
+				p = 1
+				for n1 in range(n + 1, len(argar)):
+					if argar[n1] == '(':
+						p += 1
+					elif argar[n1] == ')':
+						p -= 1
+						if p == 1:
+							argar = argar[:n1] + [')'] + argar[n1:]
+							break
 	print(argar)
 	return argar
 
