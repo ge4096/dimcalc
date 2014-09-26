@@ -279,7 +279,6 @@ def calc(argar):
 			if argar[conin - 1].units == argar[conin + 1].units:
 				pass
 
-
 running = True
 print('DimCalc v0.0.1')
 while running:
