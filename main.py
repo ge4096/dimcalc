@@ -1,17 +1,17 @@
 #!/usr/bin/python
 
 import data
+import readline
 
 # Todo:
-# 19V(3m)
 # proper error handling
 # Add >
 # More non-SI units
 # Derived units (e.g N*m)
 # calculation tools
-# arrow keys in input
 # use prefixes in output
 # equation solving
+# use tuples for dictionary keys
 
 global fail
 
@@ -168,13 +168,29 @@ def parse(x):
 						r.units = data.udic[us][:7]
 						r.value *= data.udic[us][7]
 					except KeyError:
-						print('Units not found, assumed dimensionless')
+						if us[len(us) - 1] == 's':
+							print('ballin')
+							try:
+								r.units = data.udic[us[:len(us) - 1]][:7]
+								r.value *= data.udic[us[:len(us) - 1]][7]
+							except KeyError:
+								print('Units not found, assumed dimensionless')
+						else:
+							print('Units not found, assumed dimensionless')
 			except KeyError:
 				try:
 					r.units = data.udic[us][:7]
 					r.value *= data.udic[us][7]
 				except KeyError:
-					print('Units not found, assumed dimensionless')
+					if us[len(us) - 1] == 's':
+						print('ballin')
+						try:
+							r.units = data.udic[us[:len(us) - 1]][:7]
+							r.value *= data.udic[us[:len(us) - 1]][7]
+						except KeyError:
+							print('Units not found, assumed dimensionless')
+					else:
+						print('Units not found, assumed dimensionless')
 		return r
 
 def opsplit(x):
@@ -204,7 +220,6 @@ def opsplit(x):
 		for n in range(0, len(argar) - 1):
 			if argar[n] == '-(':
 				argar = argar[:n] + ['(', '-1', '*', '('] + argar[n + 1:]
-				print(argar)
 				p = 1
 				for n1 in range(n + 1, len(argar)):
 					if argar[n1] == '(':
@@ -214,6 +229,12 @@ def opsplit(x):
 						if p == 1:
 							argar = argar[:n1] + [')'] + argar[n1:]
 							break
+	if '(' in argar:
+		for n in range(1, len(argar) - 1):
+			if argar[n] == '(' and argar[n - 1] not in '*+-/^(>':
+				print(argar)
+				print(n)
+				argar = argar[:n] + ['*'] + argar[n:]
 	print(argar)
 	return argar
 
@@ -244,7 +265,7 @@ def calc(argar):
 		elif '^' in argar:
 			powin = argar.index('^')
 			if isinstance(argar[powin - 1], Measure):
-				return calc(argar[:powin - 1] + [pow(argar[powin - 1], argar[powin + 1])] + argar[powin + 2:])
+				return calc(argar[:powin - 1] + [pow(argar[powin - 1], float(argar[powin + 1]))] + argar[powin + 2:])
 			else:
 				powv = Measure()
 				ar = parse(argar[powin - 1])
