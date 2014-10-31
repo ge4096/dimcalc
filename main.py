@@ -1,7 +1,11 @@
 #!/usr/bin/python
 
 import data
-import readline
+
+try:
+	import readline
+except ImportError:
+	pass
 
 # Todo:
 # proper error handling
@@ -11,12 +15,11 @@ import readline
 # calculation tools
 # use prefixes in output
 # equation solving
-# use tuples for dictionary keys
 
 global fail
 
 class Measure:
-	def __init__(self, value = 0, units = [0, 0, 0, 0, 0, 0, 0]):
+	def __init__(self, value = 0, units = [0, 0, 0, 0, 0, 0, 0], dispunitfact = 1):
 		try:
 			self.value = float(value)
 		except ValueError:
@@ -35,25 +38,32 @@ class Measure:
 		else:
 			self.units = [0, 0, 0, 0, 0, 0, 0]
 			print('Measure unit array of invalid length')
-	def format(self):
-		try:
-			x = str(self.value) + data.vdic[str(self.units)]
-		except KeyError:
-			if self.value == round(self.value):
-				x = str(int(self.value))
-			else:
-				x = str(self.value)
-			ustr = ['m', 'kg', 's', 'A', 'K', 'mol', 'cd']
-			for c in range(0, 6):
-				if self.units[c] == 0:
-					pass
-				elif self.units[c] == 1:
-					x += '*' + ustr[c]
-				else:
-					if self.units[c] == int(self.units[c]):
-						x += '*' + ustr[c] + '^' + str(int(self.units[c]))
+		self.dispunitfact = dispunitfact
+	def format(self, dispunits = ''):
+		self.value = self.value / self.dispunitfact
+		if self.value == round(self.value):
+			x = str(int(self.value))
+		else:
+			x = str(self.value)
+		if self.dispunitfact == 1:
+			try:
+				x += data.vdic[tuple(self.units)]
+			except KeyError:
+				ustr = ['m', 'kg', 's', 'A', 'K', 'mol', 'cd']
+				for c in range(0, 6):
+					if self.units[c] == 0:
+						pass
+					elif self.units[c] == 1:
+						x += '*' + ustr[c]
 					else:
-						x += '*' + ustr[c] + '^' + str(self.units[c])
+						if self.units[c] == int(self.units[c]):
+							x += '*' + ustr[c] + '^' + str(int(self.units[c]))
+						else:
+							x += '*' + ustr[c] + '^' + str(self.units[c])
+		else:
+			if dispunits[0].isdigit():
+				x += '*'
+			x += dispunits
 		return x
 
 def add(x, y):
@@ -169,7 +179,6 @@ def parse(x):
 						r.value *= data.udic[us][7]
 					except KeyError:
 						if us[len(us) - 1] == 's':
-							print('ballin')
 							try:
 								r.units = data.udic[us[:len(us) - 1]][:7]
 								r.value *= data.udic[us[:len(us) - 1]][7]
@@ -183,7 +192,6 @@ def parse(x):
 					r.value *= data.udic[us][7]
 				except KeyError:
 					if us[len(us) - 1] == 's':
-						print('ballin')
 						try:
 							r.units = data.udic[us[:len(us) - 1]][:7]
 							r.value *= data.udic[us[:len(us) - 1]][7]
@@ -235,10 +243,16 @@ def opsplit(x):
 				print(argar)
 				print(n)
 				argar = argar[:n] + ['*'] + argar[n:]
+	while argar.count('>') > 1:
+		n = argar.index('>')
+		argar = argar[:n] + argar[n + 1:]
+		n1 = argar.index('>')
+		argar = argar[:n] + argar[n1:]
 	print(argar)
 	return argar
 
 def calc(argar):
+	print(argar)
 	if len(argar) == 1:
 		if isinstance(argar[0], Measure):
 			return argar[0]
@@ -265,7 +279,7 @@ def calc(argar):
 		elif '^' in argar:
 			powin = argar.index('^')
 			if isinstance(argar[powin - 1], Measure):
-				return calc(argar[:powin - 1] + [pow(argar[powin - 1], float(argar[powin + 1]))] + argar[powin + 2:])
+				return calc(argar[:powin - 1] + [pow(argar[powin - 1], parse(argar[powin + 1]).value)] + argar[powin + 2:])
 			else:
 				powv = Measure()
 				ar = parse(argar[powin - 1])
@@ -303,13 +317,14 @@ def calc(argar):
 			elif addin > subin:
 				return calc(argar[:subin - 1] + [subt(parse(argar[subin - 1]), parse(argar[subin + 1]))] + argar[subin + 2:])
 		elif '>' in argar:
-			conin = argar.find('>')
+			conin = argar.index('>')
 			if isinstance(argar[conin - 1], str):
 				argar[conin - 1] = parse(argar[conin - 1])
-			if isinstance(argar[conin + 1], str):
-				argar[conin + 1] = parse(argar[conin + 1])
-			if argar[conin - 1].units == argar[conin + 1].units:
-				pass
+			if argar[conin - 1].units == parse(argar[conin + 1]).units:
+				return Measure(value = argar[conin - 1].value, units = argar[conin - 1].units, dispunitfact = parse(argar[conin + 1]).value)
+			else:
+				failed()
+				print('Dimension mismatch')
 
 running = True
 print('DimCalc v0.0.1')
@@ -319,8 +334,13 @@ while running:
 	if arg == 'exit' or arg == 'quit' or arg == 'stop' or arg == 'end':
 		running = False
 	else:
-		#try:
-		v = calc(opsplit(arg)).format()
+		if '>' in arg:
+			disparg = ''
+			for dispuitem in arg[len(arg) - arg[::-1].index('>'):]:
+				disparg += dispuitem
+			v = calc(opsplit(arg)).format(disparg)
+		else:
+			v = calc(opsplit(arg)).format()
 		if not fail:
 			print(v)
 		#except:

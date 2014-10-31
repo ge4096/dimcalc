@@ -54,10 +54,9 @@ mHg=[-1,1,-2,0,0,0,0,133322]
 vdic = {}
 for x in list(udic.keys()):
 	if udic[x][7] == 1:
-		vdic[str(udic[x][:7])] = x
+		vdic[tuple(udic[x][:7])] = x
 
-vdic['[0, 1, 0, 0, 0, 0, 0]'] = 'kg'
-#vdic['[1, 1, -2, 0, 0, 0, 0]'] = 'N*m'
+vdic[(0, 1, 0, 0, 0, 0, 0)] = 'kg'
 
 udic['Bq'] = [0,0,-1,0,0,0,0,1]
 udic['Gy'] = [2,0,-2,0,0,0,0,1]
